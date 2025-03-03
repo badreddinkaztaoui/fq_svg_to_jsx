@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import SvgInput from '@/components/SvgInput';
@@ -9,41 +9,77 @@ import CodeOutput from '@/components/CodeOutput';
 import PreviewSection from '@/components/PreviewSection';
 import MultipleSvgHandler from '@/components/MultipleSvgHandler';
 import SubfolderInput from '@/components/SubfolderInput';
+// import { convertSvgToComponent, createPreviewHtml } from '../services/converter';
+import { convertSvgToComponent } from  "../services/converter"
 
 export default function SvgConverter() {
   const [svgInput, setSvgInput] = useState('');
   const [fileName, setFileName] = useState('IconComponent');
   const [componentType, setComponentType] = useState('jsx');
   const [outputCode, setOutputCode] = useState('');
+  const [previewHtml, setPreviewHtml] = useState('');
   const [batchFiles, setBatchFiles] = useState([]);
   const [showBatchMode, setShowBatchMode] = useState(false);
-  const [subfolders, setSubfolders] = useState([{ name: 'icons', prefix: '' }]);
+  const [subfolders, setSubfolders] = useState([{ name: 'common', prefix: '' }]);
+  const [isConverting, setIsConverting] = useState(false);
+  const [error, setError] = useState(null);
   
-  const convertSvgToComponent = (svg) => {
-    // This will be implemented later with SVGR
-    console.log('Converting SVG to component...');
-    return '// Your component code will appear here';
-  };
+  const [conversionOptions, setConversionOptions] = useState({
+    memo: false,
+    namedExport: false,
+    defaultExport: true,
+    reactImport: true,
+  });
   
-  // Handle SVG input changes
+  useEffect(() => {
+    const convertSvg = async () => {
+      if (!svgInput) {
+        setOutputCode('');
+        setPreviewHtml('');
+        setError(null);
+        return;
+      }
+      
+      setIsConverting(true);
+      setError(null);
+      
+      try {
+        // First create a quick preview HTML
+        // const preview = createPreviewHtml(svgInput);
+        // setPreviewHtml(preview);
+        
+        // Then do the full conversion to JSX/TSX
+        const options = {
+          componentName: fileName,
+          typescript: componentType === 'tsx',
+          ...conversionOptions
+        };
+        
+        const code = convertSvgToComponent(svgInput, options);
+        setOutputCode(code);
+        console.log({code})
+      } catch (err) {
+        console.error('Conversion error:', err);
+        setError(err.message || 'Error converting SVG');
+      } finally {
+        setIsConverting(false);
+      }
+    };
+    
+    const timerId = setTimeout(convertSvg, 300);
+    return () => clearTimeout(timerId);
+  }, [svgInput, fileName, componentType, conversionOptions]);
+  
   const handleSvgInputChange = (svg) => {
     setSvgInput(svg);
-    if (svg) {
-      setOutputCode(convertSvgToComponent(svg));
-    } else {
-      setOutputCode('');
-    }
   };
   
-  // Handle file upload
   const handleFileUpload = (file) => {
-    // Get filename without extension for component name
-    const fileNameWithoutExt = file.name.replace(/\.[^/.]+$/, "");
-    setFileName(fileNameWithoutExt);
+    const fileName = file.name.replace(/\.[^/.]+$/, "");
+    const componentName = `${fileName[0].toUpperCase()}${fileName.slice(1)}Icon`
 
-    console.log({file})
+    setFileName(componentName);
     
-    // Read file as text
     const reader = new FileReader();
     reader.onload = (e) => {
       const svg = e.target.result;
@@ -55,7 +91,6 @@ export default function SvgConverter() {
   // Handle batch file selection
   const handleBatchFileSelect = (files) => {
     setBatchFiles(prevFiles => {
-      // Merge new files with existing files, avoiding duplicates
       const mergedFiles = [...prevFiles];
       
       files.forEach(file => {
@@ -73,15 +108,28 @@ export default function SvgConverter() {
     setSubfolders(updatedSubfolders);
   };
   
-  // Toggle between single and batch modes
   const toggleBatchMode = () => {
     setShowBatchMode(!showBatchMode);
   };
   
+  const handleOptionChange = (option, value) => {
+    setConversionOptions(prev => ({
+      ...prev,
+      [option]: value
+    }));
+  };
+  
   // Handle download functionality
   const handleDownload = () => {
-    // This will be implemented later
     console.log('Download functionality will be implemented later');
+    // For now, just simulate a download by copying to clipboard
+    navigator.clipboard.writeText(outputCode)
+      .then(() => {
+        alert('Code copied to clipboard (download functionality coming soon)');
+      })
+      .catch(err => {
+        console.error('Failed to copy code:', err);
+      });
   };
   
   return (
@@ -115,6 +163,8 @@ export default function SvgConverter() {
                 setFileName={setFileName}
                 componentType={componentType}
                 setComponentType={setComponentType}
+                options={conversionOptions}
+                onOptionChange={handleOptionChange}
                 onDownload={handleDownload}
               />
             </div>
@@ -124,10 +174,13 @@ export default function SvgConverter() {
               <CodeOutput
                 code={outputCode}
                 componentType={componentType}
+                isLoading={isConverting}
+                error={error}
               />
               
               <PreviewSection
                 svgInput={svgInput}
+                componentCode={outputCode}
               />
             </div>
           </div>

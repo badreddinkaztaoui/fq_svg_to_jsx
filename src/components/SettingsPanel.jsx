@@ -11,6 +11,10 @@ export default function SettingsPanel({
 }) {
   // Handle checkbox changes
   const handleCheckboxChange = (option) => (e) => {
+    if (e.target.name === "namedExport" && e.target.checked)
+      onOptionChange("defaultExport", false)
+    if (e.target.name === "defaultExport" && e.target.checked)
+      onOptionChange("namedExport", false);
     onOptionChange(option, e.target.checked);
   };
   
@@ -91,8 +95,9 @@ export default function SettingsPanel({
               <input
                 type="checkbox"
                 className="form-checkbox text-indigo-500 rounded"
-                checked={!options.namedExport}
-                onChange={handleCheckboxChange('namedExport')}
+                name="defaultExport"
+                checked={options.defaultExport}
+                onChange={handleCheckboxChange('defaultExport')}
               />
               <span className="ml-2 text-gray-300 text-sm">Default export</span>
             </label>
@@ -100,6 +105,7 @@ export default function SettingsPanel({
               <input
                 type="checkbox"
                 className="form-checkbox text-indigo-500 rounded"
+                name="reactImport"
                 checked={options.reactImport}
                 onChange={handleCheckboxChange('reactImport')}
               />
@@ -109,6 +115,7 @@ export default function SettingsPanel({
               <input
                 type="checkbox"
                 className="form-checkbox text-indigo-500 rounded"
+                name="namedExport"
                 checked={options.namedExport}
                 onChange={handleCheckboxChange('namedExport')}
               />
@@ -118,6 +125,7 @@ export default function SettingsPanel({
               <input
                 type="checkbox"
                 className="form-checkbox text-indigo-500 rounded"
+                name="memo"
                 checked={options.memo}
                 onChange={handleCheckboxChange('memo')}
               />
